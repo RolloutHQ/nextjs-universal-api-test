@@ -5,23 +5,24 @@ export async function GET() {
   try {
     const headersList = headers();
     const rolloutToken = headersList.get("x-rollout-token");
-    const clozeApiKey = headersList.get("X-CLOZE-API-Key");
+    const clozeAccessToken = headersList.get("X-CLOZE-ACCESS-TOKEN");
 
     if (!rolloutToken) {
       return NextResponse.json({ error: "No rollout token provided" }, { status: 401 });
     }
 
-    if (!clozeApiKey) {
-      return NextResponse.json({ error: "No Cloze API key provided" }, { status: 400 });
+    if (!clozeAccessToken) {
+      return NextResponse.json({ error: "No Cloze API access token provided" }, { status: 400 });
     }
 
     // Fetch messages from Cloze API
    
 
-    const url = `https://api.cloze.com/v1/messages/opens?api_key=${clozeApiKey}`;
+    const url = `https://api.cloze.com/v1/messages/opens`;
     const response = await fetch(url, {
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${clozeAccessToken}`,
       },
     });
 

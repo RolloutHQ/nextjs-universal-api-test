@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     const headersList = headers();
     const rolloutToken = headersList.get("x-rollout-token");
     const credentialId = headersList.get("x-credential-id");
-    const clozeApiKey = headersList.get("X-CLOZE-API-Key");
+    const clozeAccessToken = headersList.get("X-CLOZE-ACCESS-TOKEN");
 
     if (!rolloutToken) {
       return NextResponse.json({ error: "No token provided" }, { status: 401 });
@@ -62,15 +62,13 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const params = new URLSearchParams({
-      api_key: clozeApiKey
-    });
 
-    const url = `https://api.cloze.com/v1/timeline/todo/create?${params.toString()}`;
+    const url = `https://api.cloze.com/v1/timeline/todo/create`;
     const options = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${clozeAccessToken}`,
       },
       body: JSON.stringify({
         subject: body.title,

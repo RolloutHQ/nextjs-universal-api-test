@@ -27,7 +27,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [credentialId, setCredentialId] = useState<string | null>(null);
-  const [clozeApiKey, setClozeApiKey] = useState<string | null>(null);
+  const [clozeAccessToken, setClozeAccessToken] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ResourceType>("people");
 
   // People state
@@ -58,10 +58,10 @@ export default function Home() {
       setUserId(newUserId);
     }
 
-    // Load Cloze API key from localStorage
-    const storedClozeApiKey = JSON.parse(localStorage.getItem("cloze-api-key"))?.[0].data.apiKey;
-    if (storedClozeApiKey) {
-      setClozeApiKey(storedClozeApiKey);
+    // Load Cloze API access token from localStorage
+    const storedClozeAccessToken = JSON.parse(localStorage.getItem("cloze-access-token"))?.[0].data.accessToken;
+    if (storedClozeAccessToken) {
+      setClozeAccessToken(storedClozeAccessToken);
     }
   }, []);
 
@@ -228,14 +228,14 @@ export default function Home() {
 
   async function createTask(data: CreateTaskInput) {
     try {
-      const apiData = JSON.parse(localStorage.getItem("cloze-api-key"))?.[0].data;
+      const apiData = JSON.parse(localStorage.getItem("cloze-access-token"))?.[0].data;
       const response = await fetch("/api/tasks", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "X-Rollout-Token": token!,
           "X-Credential-Id": credentialId!,
-          "X-CLOZE-API-Key": apiData.apiKey,
+          "X-CLOZE-ACCESS-TOKEN": apiData.accessToken,
         },
         body: JSON.stringify(data),
       });
@@ -250,8 +250,8 @@ export default function Home() {
 
   // Emails handlers
   async function fetchEmails() {
-    if (!clozeApiKey) {
-      setEmailsError("No Cloze API key available. Please connect your Cloze account.");
+    if (!clozeAccessToken) {
+      setEmailsError("No Cloze API access token available. Please connect your Cloze account.");
       return;
     }
 
@@ -263,7 +263,7 @@ export default function Home() {
         headers: {
           "Content-Type": "application/json",
           "X-Rollout-Token": token!,
-          "X-Cloze-Api-Key": clozeApiKey,
+          "X-Cloze-Access-Token": clozeAccessToken,
         },
       });
 
@@ -305,12 +305,12 @@ export default function Home() {
           const credentialData = await response.json();
           localStorage.setItem(appKey, JSON.stringify(credentialData));
 
-          // If it's Cloze, extract and store the API key
-          if (appKey.includes("cloze-api-key") && credentialData && credentialData.length > 0) {
-            const apiKey = credentialData[0]?.data?.apiKey;
-            if (apiKey) {
-              setClozeApiKey(apiKey);
-              localStorage.setItem("cloze-api-key", apiKey);
+          // If it's Cloze, extract and store the API access token
+          if (appKey === "cloze" && credentialData && credentialData.length > 0) {
+            const accessToken = credentialData[0]?.data?.accessToken;
+            if (accessToken) {
+              setClozeAccessToken(accessToken);
+              localStorage.setItem("cloze-access-token", JSON.stringify(credentialData));
             }
           }
         } else {
