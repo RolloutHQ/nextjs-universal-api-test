@@ -254,13 +254,14 @@ export default function Home() {
   async function createTask(data: CreateTaskInput) {
     try {
       const apiData = credentials.find(c => c.appKey === "cloze")?.data;
+      const clozeAccessToken = apiData?.accessToken;
       const response = await fetch("/api/tasks", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "X-Rollout-Token": token!,
           "X-Credential-Id": credentialId!,
-          "X-CLOZE-ACCESS-TOKEN": apiData.accessToken,
+          "X-Cloze-Access-Token": clozeAccessToken,
         },
         body: JSON.stringify(data),
       });

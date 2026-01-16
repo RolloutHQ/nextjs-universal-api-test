@@ -21,6 +21,8 @@ export default function CreateTaskModal({
     priority: "medium",
     dueDate: "",
     participants: [],
+    assigner: "",
+    preview: "",
   });
   const [currentEmail, setCurrentEmail] = useState("");
 
@@ -54,6 +56,8 @@ export default function CreateTaskModal({
       priority: "medium",
       dueDate: "",
       participants: [],
+      assigner: "",
+      preview: "",
     });
     setCurrentEmail("");
     onClose();
@@ -103,6 +107,20 @@ export default function CreateTaskModal({
             className="w-full p-2 border rounded"
             value={formData.dueDate}
             onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+          />
+          <input
+            type="email"
+            placeholder="Assigner Email"
+            className="w-full p-2 border rounded"
+            value={formData.assigner}
+            onChange={(e) => setFormData({ ...formData, assigner: e.target.value })}
+          />
+          <input
+            type="text"
+            placeholder="Preview Text"
+            className="w-full p-2 border rounded"
+            value={formData.preview}
+            onChange={(e) => setFormData({ ...formData, preview: e.target.value })}
           />
 
           {/* Participants Section */}

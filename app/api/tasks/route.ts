@@ -73,7 +73,9 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         subject: body.title,
         participants: body.participants,
-        when: body.dueDate
+        when: body.dueDate,
+        assigner: body.assigner,
+        preview: body.preview,
       }),
     };
 

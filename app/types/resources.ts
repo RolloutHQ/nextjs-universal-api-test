@@ -262,6 +262,8 @@ export interface CreateTaskInput {
   participants?: string[];
   personId?: string;
   companyId?: string;
+  assigner?: string;
+  preview?: string;
 }
 
 // ========== CLOZE MESSAGES ==========
