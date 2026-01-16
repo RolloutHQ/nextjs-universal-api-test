@@ -359,7 +359,7 @@ export default function Home() {
           <CredentialsManager
             apiCategories={{ crm: true }}
             onCredentialAdded={handleCredentialAdded}
-            shouldRenderConnector={(connector) => connector.appKey !== "kw-command"}
+            shouldRenderConnector={(connector) => !["kw-command", "cloze-api-key"].includes(connector.appKey)}
           />
         </RolloutLinkProvider>
 
