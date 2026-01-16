@@ -28,7 +28,6 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [credentialId, setCredentialId] = useState<string | null>(null);
-  const [clozeAccessToken, setClozeAccessToken] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ResourceType>("people");
 
   // People state
@@ -50,6 +49,8 @@ export default function Home() {
   const [emailsLoading, setEmailsLoading] = useState(false);
   const [emailsError, setEmailsError] = useState<string | null>(null);
 
+  const [credentials, setCredentials] = useState<any[]>([]);
+
   // Initialize user on mount
   useEffect(() => {
     const storedUserId = localStorage.getItem('userId');
@@ -61,11 +62,6 @@ export default function Home() {
       setUserId(newUserId);
     }
 
-    // Load Cloze API access token from localStorage
-    const storedClozeAccessToken = JSON.parse(localStorage.getItem("cloze-access-token"))?.[0].data.accessToken;
-    if (storedClozeAccessToken) {
-      setClozeAccessToken(storedClozeAccessToken);
-    }
   }, []);
 
   // Get token when user changes
@@ -107,12 +103,13 @@ export default function Home() {
     if (!token) return;
 
     try {
-      const response = await fetch("https://universal.rollout.com/api/credentials", {
+      const response = await fetch("https://universal.rollout.com/api/credentials?includeData=true", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
       const data = await response.json();
+      setCredentials(data || []);
 
       if (data && data.length > 0) {
         const lastCredential = data[0];
@@ -256,7 +253,7 @@ export default function Home() {
 
   async function createTask(data: CreateTaskInput) {
     try {
-      const apiData = JSON.parse(localStorage.getItem("cloze-access-token"))?.[0].data;
+      const apiData = credentials.find(c => c.appKey === "cloze")?.data;
       const response = await fetch("/api/tasks", {
         method: "POST",
         headers: {
@@ -278,6 +275,8 @@ export default function Home() {
 
   // Emails handlers
   async function fetchEmails() {
+    const apiData = credentials.find(c => c.appKey === "cloze")?.data;
+    const clozeAccessToken = apiData?.accessToken;
     if (!clozeAccessToken) {
       setEmailsError("No Cloze API access token available. Please connect your Cloze account.");
       return;
@@ -316,38 +315,8 @@ export default function Home() {
   }
 
   const handleCredentialAdded = async ({ id, appKey }: any) => {
-    console.log({id, appKey});
+    console.log({ id, appKey });
     setCredentialId(id);
-
-    // Fetch credential details
-    if (token && appKey) {
-      try {
-        const response = await fetch(`/api/credentials?appKey=${appKey}&includeData=true`, {
-          headers: {
-            "Content-Type": "application/json",
-            "X-Rollout-Token": token,
-          },
-        });
-
-        if (response.ok) {
-          const credentialData = await response.json();
-          localStorage.setItem(appKey, JSON.stringify(credentialData));
-
-          // If it's Cloze, extract and store the API access token
-          if (appKey === "cloze" && credentialData && credentialData.length > 0) {
-            const accessToken = credentialData[0]?.data?.accessToken;
-            if (accessToken) {
-              setClozeAccessToken(accessToken);
-              localStorage.setItem("cloze-access-token", JSON.stringify(credentialData));
-            }
-          }
-        } else {
-          console.error("Failed to fetch credential details");
-        }
-      } catch (error) {
-        console.error("Error fetching credential details:", error);
-      }
-    }
   };
 
   if (loading) {
