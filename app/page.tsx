@@ -18,6 +18,7 @@ import type {
   Task,
   CreateTaskInput,
   ClozeMessage,
+  PaginationMetadata,
 } from "@/types/resources";
 
 export default function Home() {
@@ -35,6 +36,8 @@ export default function Home() {
   const [peopleLoading, setPeopleLoading] = useState(false);
   const [peopleError, setPeopleError] = useState<string | null>(null);
   const [isPeopleModalOpen, setIsPeopleModalOpen] = useState(false);
+  const [peoplePagination, setPeoplePagination] = useState<PaginationMetadata | null>(null);
+  const [peopleCursorHistory, setPeopleCursorHistory] = useState<string[]>([]);
 
   // Tasks state
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -137,12 +140,13 @@ export default function Home() {
   }
 
   // People handlers
-  async function fetchPeople(retryCount = 0, maxRetries = 3) {
+  async function fetchPeople(cursor?: string, retryCount = 0, maxRetries = 3) {
     setPeopleLoading(true);
     setPeopleError(null);
 
     try {
-      const response = await fetch("/api/people", {
+      const url = cursor ? `/api/people?next=${encodeURIComponent(cursor)}` : "/api/people";
+      const response = await fetch(url, {
         headers: {
           "Content-Type": "application/json",
           "X-Rollout-Token": token!,
@@ -153,7 +157,7 @@ export default function Home() {
       if (response.status === 409 && retryCount < maxRetries) {
         setPeopleError("Data not ready. Retrying...");
         await new Promise(resolve => setTimeout(resolve, 30000));
-        return fetchPeople(retryCount + 1, maxRetries);
+        return fetchPeople(cursor, retryCount + 1, maxRetries);
       }
 
       if (!response.ok) {
@@ -162,12 +166,36 @@ export default function Home() {
 
       const data = await response.json();
       setPeople(data.people || []);
+      setPeoplePagination(data._metadata || null);
     } catch (err: any) {
       setPeopleError(err.message);
     } finally {
       if (retryCount === 0) {
         setPeopleLoading(false);
       }
+    }
+  }
+
+  function goToNextPeoplePage() {
+    if (peoplePagination?.next) {
+      // Save next cursor to history for "back" navigation
+      setPeopleCursorHistory([...peopleCursorHistory, peoplePagination.next]);
+      fetchPeople(peoplePagination.next);
+    }
+  }
+
+  function goToPreviousPeoplePage() {
+    if (peopleCursorHistory.length > 1) {
+      // Remove current cursor, go back to previous
+      const newHistory = [...peopleCursorHistory];
+      newHistory.pop(); // Remove current
+      const previousCursor = newHistory[newHistory.length - 1];
+      setPeopleCursorHistory(newHistory);
+      fetchPeople(previousCursor || undefined);
+    } else if (peopleCursorHistory.length === 1) {
+      // Go back to first page
+      setPeopleCursorHistory([]);
+      fetchPeople();
     }
   }
 
@@ -379,6 +407,10 @@ export default function Home() {
                     loading={peopleLoading}
                     error={peopleError}
                     onCreateClick={() => setIsPeopleModalOpen(true)}
+                    pagination={peoplePagination}
+                    onNextPage={goToNextPeoplePage}
+                    onPreviousPage={goToPreviousPeoplePage}
+                    canGoBack={peopleCursorHistory.length > 0}
                   />
                   <CreatePersonModal
                     isOpen={isPeopleModalOpen}

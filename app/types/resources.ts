@@ -318,3 +318,13 @@ export interface ResourceState<T> {
 export interface ApiResponse<T> {
   [key: string]: T[];
 }
+
+// ========== PAGINATION ==========
+export interface PaginationMetadata {
+  collection: string;
+  offset: number;
+  limit: number;
+  total: number;
+  next?: string;
+  nextLink?: string;
+}

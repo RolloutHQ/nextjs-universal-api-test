@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
+import { NextRequest } from "next/server";
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const headersList = headers();
     const rolloutToken = headersList.get("x-rollout-token");
@@ -18,7 +19,17 @@ export async function GET() {
 
     await wait(2000);
 
-    const url = "https://crm.universal.rollout.com/api/people";
+    // Build URL with optional pagination cursor
+    const searchParams = request.nextUrl.searchParams;
+    const nextCursor = searchParams.get("next");
+
+    const params = new URLSearchParams({
+      ...(nextCursor ? { next: nextCursor } : {}),
+      limit: "50",
+    });
+
+    let url = `https://crm.universal.rollout.com/api/people?${params.toString()}`;
+
     const options = {
       headers: {
         Authorization: `Bearer ${rolloutToken}`,
@@ -37,8 +48,6 @@ export async function GET() {
     }
     const data = await response.json();
     return NextResponse.json(data);
-
-    // return NextResponse.json(data);
   } catch (error) {
     console.error("Error fetching people:", error);
     return NextResponse.json(

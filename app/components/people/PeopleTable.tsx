@@ -1,12 +1,16 @@
 "use client";
 import ResourceTable from "../ResourceTable";
-import { Person } from "@/types/resources";
+import { Person, PaginationMetadata } from "@/types/resources";
 
 interface PeopleTableProps {
   people: Person[];
   loading: boolean;
   error: string | null;
   onCreateClick: () => void;
+  pagination?: PaginationMetadata | null;
+  onNextPage?: () => void;
+  onPreviousPage?: () => void;
+  canGoBack?: boolean;
 }
 
 export default function PeopleTable({
@@ -14,6 +18,10 @@ export default function PeopleTable({
   loading,
   error,
   onCreateClick,
+  pagination,
+  onNextPage,
+  onPreviousPage,
+  canGoBack,
 }: PeopleTableProps) {
   return (
     <ResourceTable
@@ -45,6 +53,10 @@ export default function PeopleTable({
       onCreateClick={onCreateClick}
       createButtonLabel="Create New Lead"
       emptyMessage="No people records found."
+      pagination={pagination}
+      onNextPage={onNextPage}
+      onPreviousPage={onPreviousPage}
+      canGoBack={canGoBack}
     />
   );
 }

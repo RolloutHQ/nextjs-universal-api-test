@@ -1,5 +1,6 @@
 "use client";
 import { ReactNode } from "react";
+import { PaginationMetadata } from "@/types/resources";
 
 interface Column<T> {
   key: keyof T | string;
@@ -16,6 +17,10 @@ interface ResourceTableProps<T> {
   onCreateClick?: () => void;
   createButtonLabel?: string;
   title?: string;
+  pagination?: PaginationMetadata | null;
+  onNextPage?: () => void;
+  onPreviousPage?: () => void;
+  canGoBack?: boolean;
 }
 
 export default function ResourceTable<T extends { id: string }>({
@@ -27,6 +32,10 @@ export default function ResourceTable<T extends { id: string }>({
   onCreateClick,
   createButtonLabel = "Create New",
   title,
+  pagination,
+  onNextPage,
+  onPreviousPage,
+  canGoBack = false,
 }: ResourceTableProps<T>) {
   return (
     <div className="mt-8">
@@ -85,6 +94,31 @@ export default function ResourceTable<T extends { id: string }>({
 
       {!loading && !error && data.length === 0 && (
         <p className="text-gray-500">{emptyMessage}</p>
+      )}
+
+      {/* Pagination Controls */}
+      {pagination && !loading && !error && data.length > 0 && (
+        <div className="flex items-center justify-between mt-4 py-3 border-t border-gray-200">
+          <div className="text-sm text-gray-600">
+            Showing {pagination.offset + 1} - {Math.min(pagination.offset + pagination.limit, pagination.total)} of {pagination.total}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={onPreviousPage}
+              disabled={!canGoBack}
+              className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <button
+              onClick={onNextPage}
+              disabled={!pagination.next}
+              className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
