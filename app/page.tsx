@@ -20,6 +20,7 @@ import type {
   ClozeMessage,
   PaginationMetadata,
 } from "@/types/resources";
+import { getValidAccessToken } from "./api/services/cloze";
 
 export default function Home() {
   // Core state
@@ -276,8 +277,9 @@ export default function Home() {
 
   // Emails handlers
   async function fetchEmails() {
-    const apiData = credentials.find(c => c.appKey === "cloze")?.data;
-    const clozeAccessToken = apiData?.accessToken;
+    const credential = credentials.find(c => c.appKey === "cloze");
+    const validAccessToken = await getValidAccessToken({ credential });
+    const clozeAccessToken = validAccessToken?.accessToken;
     if (!clozeAccessToken) {
       setEmailsError("No Cloze API access token available. Please connect your Cloze account.");
       return;
