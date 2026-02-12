@@ -20,7 +20,7 @@ import type {
   ClozeMessage,
   PaginationMetadata,
 } from "@/types/resources";
-import { getValidAccessToken } from "./api/services/cloze";
+import { getValidAccessToken } from "./api/credentials/cloze";
 
 export default function Home() {
   // Core state
@@ -278,12 +278,6 @@ export default function Home() {
   // Emails handlers
   async function fetchEmails() {
     const credential = credentials.find(c => c.appKey === "cloze");
-    const validAccessToken = await getValidAccessToken({ credential });
-    const clozeAccessToken = validAccessToken?.accessToken;
-    if (!clozeAccessToken) {
-      setEmailsError("No Cloze API access token available. Please connect your Cloze account.");
-      return;
-    }
 
     setEmailsLoading(true);
     setEmailsError(null);
@@ -293,7 +287,7 @@ export default function Home() {
         headers: {
           "Content-Type": "application/json",
           "X-Rollout-Token": token!,
-          "X-Cloze-Access-Token": clozeAccessToken,
+          "X-Credential-Id": credential?.id,
         },
       });
 

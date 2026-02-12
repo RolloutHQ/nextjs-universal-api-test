@@ -41,7 +41,6 @@ export async function refreshTokens({ credential }) {
   }
 
   const data = await response.json();
-  console.log("Token refresh response data:", data);
 
   if (
     typeof data.access_token !== "string" ||

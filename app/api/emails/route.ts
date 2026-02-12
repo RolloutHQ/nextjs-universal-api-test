@@ -1,11 +1,23 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
+import { getValidAccessToken } from "../credentials/cloze";
 
 export async function GET() {
   try {
     const headersList = headers();
     const rolloutToken = headersList.get("x-rollout-token");
-    const clozeAccessToken = headersList.get("X-CLOZE-ACCESS-TOKEN");
+    const credentialId = headersList.get("X-Credential-Id");
+
+    const credentialsRes = await fetch("https://universal.rollout.com/api/credentials?includeData=true", {
+      headers: {
+        Authorization: `Bearer ${rolloutToken}`,
+      },
+    });
+    const credentials = await credentialsRes.json();
+
+    const credential = credentials.find((cred: any) => cred.id === credentialId);
+
+    const clozeAccessToken = await getValidAccessToken({ credential });
 
     if (!rolloutToken) {
       return NextResponse.json({ error: "No rollout token provided" }, { status: 401 });
@@ -16,7 +28,6 @@ export async function GET() {
     }
 
     // Fetch messages from Cloze API
-   
 
     const url = `https://api.cloze.com/v1/messages/opens`;
     const response = await fetch(url, {
@@ -28,7 +39,7 @@ export async function GET() {
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("Error fetching messages:", errorData);
+
       return NextResponse.json(
         { error: errorData.message || 'Failed to fetch messages' },
         { status: response.status }
