@@ -40,7 +40,7 @@ export default function Home() {
   const [peopleCursorHistory, setPeopleCursorHistory] = useState<string[]>([]);
 
   // Tasks state
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<Task[]>(JSON.parse(localStorage.getItem("tasks") || "[]"));
   const [tasksLoading, setTasksLoading] = useState(false);
   const [tasksError, setTasksError] = useState<string | null>(null);
   const [isTasksModalOpen, setIsTasksModalOpen] = useState(false);
@@ -219,6 +219,8 @@ export default function Home() {
 
   // Tasks handlers
   async function fetchTasks(retryCount = 0, maxRetries = 3) {
+    const clozeCredential = credentials.find(c => c.appKey === "cloze");
+    if(clozeCredential) return;
     setTasksLoading(true);
     setTasksError(null);
 
@@ -254,18 +256,20 @@ export default function Home() {
 
   async function createTask(data: CreateTaskInput) {
     try {
-      const apiData = credentials.find(c => c.appKey === "cloze")?.data;
-      const clozeAccessToken = apiData?.accessToken;
       const response = await fetch("/api/tasks", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "X-Rollout-Token": token!,
           "X-Credential-Id": credentialId!,
-          "X-Cloze-Access-Token": clozeAccessToken,
         },
         body: JSON.stringify(data),
       });
+      // save task to localstorage for optimistic UI update
+      const existingTasks = JSON.parse(localStorage.getItem("tasks") || "[]");
+      const newTask = { ...data, id: `temp-${Date.now()}` } as Task;
+      localStorage.setItem("tasks", JSON.stringify([newTask, ...existingTasks]));
+      setTasks((prev) => [newTask, ...prev]);
 
       if (response.ok) {
         fetchTasks();
@@ -312,7 +316,6 @@ export default function Home() {
   }
 
   const handleCredentialAdded = async ({ id, appKey }: any) => {
-    console.log({ id, appKey });
     setCredentialId(id);
   };
 

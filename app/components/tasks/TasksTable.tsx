@@ -41,8 +41,8 @@ export default function TasksTable({
       error={error}
       onCreateClick={onCreateClick}
       createButtonLabel="Create Task"
-      emptyMessage="No tasks found."
-      title="Tasks"
+      emptyMessage="No recent tasks found."
+      title="Recent Tasks"
     />
   );
 }

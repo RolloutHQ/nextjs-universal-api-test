@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
+import { getValidAccessToken } from "../credentials/cloze";
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -52,7 +53,15 @@ export async function POST(request: Request) {
     const headersList = headers();
     const rolloutToken = headersList.get("x-rollout-token");
     const credentialId = headersList.get("x-credential-id");
-    const clozeAccessToken = headersList.get("X-CLOZE-ACCESS-TOKEN");
+
+    const credentialsRes = await fetch("https://universal.rollout.com/api/credentials?includeData=true", {
+      headers: {
+        Authorization: `Bearer ${rolloutToken}`,
+      },
+    });
+    const credentials = await credentialsRes.json();
+    const credential = credentials.find((cred: any) => cred.id === credentialId);
+    const clozeAccessToken = await getValidAccessToken({ credential });
 
     if (!rolloutToken) {
       return NextResponse.json({ error: "No token provided" }, { status: 401 });
@@ -80,7 +89,7 @@ export async function POST(request: Request) {
     };
 
     const response = await fetch(url, options);
-    
+
     if (!response.ok) {
       const errorData = await response.json();
       return NextResponse.json(
