@@ -20,7 +20,7 @@ import type {
   ClozeMessage,
   PaginationMetadata,
 } from "@/types/resources";
-import { getValidAccessToken } from "./api/credentials/cloze";
+import { getAllTasks, addTask } from "./lib/taskStorage";
 
 export default function Home() {
   // Core state
@@ -40,7 +40,7 @@ export default function Home() {
   const [peopleCursorHistory, setPeopleCursorHistory] = useState<string[]>([]);
 
   // Tasks state
-  const [tasks, setTasks] = useState<Task[]>(JSON.parse(localStorage.getItem("tasks") || "[]"));
+  const [tasks, setTasks] = useState<Task[]>(getAllTasks());
   const [tasksLoading, setTasksLoading] = useState(false);
   const [tasksError, setTasksError] = useState<string | null>(null);
   const [isTasksModalOpen, setIsTasksModalOpen] = useState(false);
@@ -266,9 +266,9 @@ export default function Home() {
         body: JSON.stringify(data),
       });
       // save task to localstorage for optimistic UI update
-      const existingTasks = JSON.parse(localStorage.getItem("tasks") || "[]");
+      const existingTasks = getAllTasks();
       const newTask = { ...data, id: `temp-${Date.now()}` } as Task;
-      localStorage.setItem("tasks", JSON.stringify([newTask, ...existingTasks]));
+      addTask(newTask);
       setTasks((prev) => [newTask, ...prev]);
 
       if (response.ok) {
