@@ -79,9 +79,9 @@ export default function Home() {
       setCredentials(data || []);
 
       if (data && data.length > 0) {
-        const lastCredential = data[0];
-        if (lastCredential && lastCredential.id) {
-          setCredentialId(lastCredential.id);
+        const clozeCredential = data.find((cred: any) => cred.appKey === "cloze");
+        if (clozeCredential && clozeCredential.id) {
+          setCredentialId(clozeCredential.id);
         }
       }
     } catch (error) {
@@ -342,7 +342,6 @@ export default function Home() {
       </main>
     );
   }
-  console.log("Current credentials:", credentials);
 
   return (
     <main className="flex min-h-screen flex-col items-center p-4">
