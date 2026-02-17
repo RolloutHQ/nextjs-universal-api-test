@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { RolloutLinkProvider, CredentialsManager } from "@rollout/link-react";
 import "@rollout/link-react/style.css";
 
@@ -52,41 +52,7 @@ export default function Home() {
 
   const [credentials, setCredentials] = useState<any[]>([]);
 
-  // Initialize user on mount
-  useEffect(() => {
-    const storedUserId = localStorage.getItem('userId');
-    if (storedUserId) {
-      setUserId(storedUserId);
-    } else {
-      const newUserId = crypto.randomUUID();
-      localStorage.setItem('userId', newUserId);
-      setUserId(newUserId);
-    }
-
-  }, []);
-
-  // Get token when user changes
-  useEffect(() => {
-    if (userId) {
-      getToken();
-    }
-  }, [userId]);
-
-  // Fetch credentials when token is ready
-  useEffect(() => {
-    if (userId && token) {
-      fetchCredentials();
-    }
-  }, [token, userId]);
-
-  // Fetch active tab data when credentialId and tab changes
-  useEffect(() => {
-    if (credentialId && token) {
-      fetchActiveTabData();
-    }
-  }, [credentialId, token, activeTab]);
-
-  async function getToken() {
+  const getToken = useCallback(async () => {
     if (!userId) return;
 
     try {
@@ -98,9 +64,9 @@ export default function Home() {
       setError("Failed to fetch rollout token");
       setLoading(false);
     }
-  }
+  }, [userId]);
 
-  async function fetchCredentials() {
+  const fetchCredentials = useCallback(async () => {
     if (!token) return;
 
     try {
@@ -121,7 +87,42 @@ export default function Home() {
     } catch (error) {
       console.error("Error fetching credentials:", error);
     }
-  }
+  }, [token]);
+
+  // Initialize user on mount
+  useEffect(() => {
+    const storedUserId = localStorage.getItem('userId');
+    if (storedUserId) {
+      setUserId(storedUserId);
+    } else {
+      const newUserId = crypto.randomUUID();
+      localStorage.setItem('userId', newUserId);
+      setUserId(newUserId);
+    }
+
+  }, []);
+
+  // Get token when user changes
+  useEffect(() => {
+    if (userId) {
+      getToken();
+    }
+  }, [userId, getToken]);
+
+  // Fetch credentials when token is ready
+  useEffect(() => {
+    if (userId && token) {
+      fetchCredentials();
+    }
+  }, [token, userId, fetchCredentials]);
+
+  // Fetch active tab data when credentialId and tab changes
+  useEffect(() => {
+    if (credentialId && token) {
+      fetchActiveTabData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [credentialId, token, activeTab]);
 
   function fetchActiveTabData() {
     switch (activeTab) {
@@ -266,7 +267,6 @@ export default function Home() {
         body: JSON.stringify(data),
       });
       // save task to localstorage for optimistic UI update
-      const existingTasks = getAllTasks();
       const newTask = { ...data, id: `temp-${Date.now()}` } as Task;
       addTask(newTask);
       setTasks((prev) => [newTask, ...prev]);
@@ -315,7 +315,7 @@ export default function Home() {
     }
   }
 
-  const handleCredentialAdded = async ({ id, appKey }: any) => {
+  const handleCredentialAdded = async ({ id }: any) => {
     setCredentialId(id);
   };
 
@@ -342,6 +342,7 @@ export default function Home() {
       </main>
     );
   }
+  console.log("Current credentials:", credentials);
 
   return (
     <main className="flex min-h-screen flex-col items-center p-4">

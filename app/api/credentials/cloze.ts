@@ -1,5 +1,5 @@
 const BASE_URL = " https://www.cloze.com/oauth";
-import { addMinutes, addSeconds, isBefore, subSeconds } from "date-fns";
+import { addMinutes, addSeconds, isBefore } from "date-fns";
 
 const SCOPES = [
   "basic",
