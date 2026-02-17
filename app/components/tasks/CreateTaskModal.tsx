@@ -101,13 +101,20 @@ export default function CreateTaskModal({
             <option value="medium">Medium Priority</option>
             <option value="high">High Priority</option>
           </select>
-          <input
-            type="date"
-            placeholder="Due Date"
-            className="w-full p-2 border rounded"
-            value={formData.dueDate}
-            onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-          />
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Due Date
+            </label>
+            <input
+              type="date"
+              id="dueDate"
+              placeholder="Due Date"
+              className="w-full p-2 border rounded"
+              value={formData.dueDate}
+              onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+            />
+          </div>
+
           <input
             type="email"
             placeholder="Assigner Email"
