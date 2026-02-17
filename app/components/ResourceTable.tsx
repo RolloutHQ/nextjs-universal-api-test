@@ -100,7 +100,8 @@ export default function ResourceTable<T extends { id: string }>({
       {pagination && !loading && !error && data.length > 0 && (
         <div className="flex items-center justify-between mt-4 py-3 border-t border-gray-200">
           <div className="text-sm text-gray-600">
-            Showing {pagination.offset + 1} - {Math.min(pagination.offset + pagination.limit, pagination.total)} of {pagination.total}
+            {/* Showing {pagination.offset + 1} - {Math.min(pagination.offset + pagination.limit, pagination.total)} of {pagination.total} */}
+            {pagination.total} records total
           </div>
           <div className="flex gap-2">
             <button
