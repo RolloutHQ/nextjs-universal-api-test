@@ -281,8 +281,6 @@ export default function Home() {
 
   // Emails handlers
   async function fetchEmails() {
-    const credential = credentials.find(c => c.appKey === "cloze");
-
     setEmailsLoading(true);
     setEmailsError(null);
 
@@ -290,8 +288,8 @@ export default function Home() {
       const response = await fetch("/api/emails", {
         headers: {
           "Content-Type": "application/json",
-          "X-Rollout-Token": token!,
-          "X-Credential-Id": credential?.id,
+          "X-Rollout-Token": token,
+          "X-Credential-Id": credentialId,
         },
       });
 
