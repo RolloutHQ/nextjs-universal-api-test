@@ -57,7 +57,7 @@ export default function ResourceTable<T extends { id: string }>({
       {!loading && !error && data.length > 0 && (
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
-            <thead className="bg-gray-100 dark:bg-gray-800">
+            <thead className="bg-gray-100">
               <tr>
                 {columns.map((column) => (
                   <th
@@ -73,7 +73,7 @@ export default function ResourceTable<T extends { id: string }>({
               {data.map((item) => (
                 <tr
                   key={item.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                  className="hover:bg-gray-50"
                 >
                   {columns.map((column) => (
                     <td
