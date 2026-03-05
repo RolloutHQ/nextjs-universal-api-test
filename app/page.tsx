@@ -51,6 +51,12 @@ export default function Home() {
   const [emailsError, setEmailsError] = useState<string | null>(null);
 
   const [credentials, setCredentials] = useState<any[]>([]);
+  const [disabledTabs, setDisabledTabs] = useState<ResourceType[]>([]);
+  const credential = credentials.find((cred: any) => cred.id === credentialId);
+
+  useEffect(() => {
+    setDisabledTabs(credential?.appKey !== "cloze" ? ["timeline"] : [])
+  }, [credentialId, credential, credentials]);
 
   const getToken = useCallback(async () => {
     if (!userId) return;
@@ -315,6 +321,7 @@ export default function Home() {
 
   const handleCredentialAdded = async ({ id }: any) => {
     setCredentialId(id);
+    await fetchCredentials();
   };
 
   if (loading) {
@@ -363,7 +370,7 @@ export default function Home() {
           <>
             {/* Resource Tabs */}
             <div className="mt-8">
-              <ResourceTabs activeTab={activeTab} onTabChange={setActiveTab} />
+              <ResourceTabs activeTab={activeTab} onTabChange={setActiveTab} disabledTabs={disabledTabs} />
             </div>
 
             {/* Tab Content */}
@@ -404,7 +411,7 @@ export default function Home() {
                 </>
               )}
 
-              {activeTab === "timeline" && (
+              {activeTab === "timeline" && credential?.appKey === "cloze" && (
                 <>
                   <EmailsTable
                     emails={emails}
