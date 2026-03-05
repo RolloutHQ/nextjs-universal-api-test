@@ -319,8 +319,13 @@ export default function Home() {
     }
   }
 
-  const handleCredentialAdded = async ({ id }: any) => {
-    setCredentialId(id);
+  const handleCredentialAdded = async ({ id, appKey }: any) => {
+    if(appKey === "cloze") {
+      setCredentialId(id);
+      setDisabledTabs([]);
+    } else {
+      setDisabledTabs(["timeline"]);
+    }
     await fetchCredentials();
   };
 
