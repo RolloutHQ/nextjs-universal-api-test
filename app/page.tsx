@@ -52,11 +52,27 @@ export default function Home() {
 
   const [credentials, setCredentials] = useState<any[]>([]);
   const [disabledTabs, setDisabledTabs] = useState<ResourceType[]>([]);
+  const [assignerEmail, setAssignerEmail] = useState<string>("");
   const credential = credentials.find((cred: any) => cred.id === credentialId);
 
   useEffect(() => {
     setDisabledTabs(credential?.appKey !== "cloze" ? ["timeline"] : [])
   }, [credentialId, credential, credentials]);
+
+  useEffect(() => {
+    if (!credentialId || !token || credential?.appKey !== "cloze") return;
+    fetch("/api/me", {
+      headers: {
+        "X-Rollout-Token": token,
+        "X-Credential-Id": credentialId,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.profile?.email) setAssignerEmail(data.profile.email);
+      })
+      .catch((err) => console.error("Error fetching profile:", err));
+  }, [credentialId, token, credential?.appKey]);
 
   const getToken = useCallback(async () => {
     if (!userId) return;
@@ -412,7 +428,7 @@ export default function Home() {
                     isOpen={isTasksModalOpen}
                     onClose={() => setIsTasksModalOpen(false)}
                     onSubmit={createTask}
-                    credential={credential}
+                    assignerEmail={assignerEmail}
                     people={people}
                   />
                 </>
@@ -436,7 +452,7 @@ export default function Home() {
                     onClose={() => setIsTasksModalOpen(false)}
                     onSubmit={createTask}
                     people={people}
-                    credential={credential}
+                    assignerEmail={assignerEmail}
                   />
                 </>
               )}

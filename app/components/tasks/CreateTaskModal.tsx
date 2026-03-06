@@ -8,7 +8,7 @@ interface CreateTaskModalProps {
   onClose: () => void;
   onSubmit: (data: CreateTaskInput) => Promise<void>;
   people?: Person[];
-  credential?: any;
+  assignerEmail?: string;
 }
 
 export default function CreateTaskModal({
@@ -16,7 +16,7 @@ export default function CreateTaskModal({
   onClose,
   onSubmit,
   people = [],
-  credential,
+  assignerEmail = "",
 }: CreateTaskModalProps) {
   const [formData, setFormData] = useState<CreateTaskInput>({
     title: "",
@@ -25,7 +25,7 @@ export default function CreateTaskModal({
     priority: "medium",
     dueDate: "",
     participants: [],
-    assigner: credential?.credentialKey || "",
+    assigner: assignerEmail,
     preview: "",
   });
 
@@ -57,7 +57,7 @@ export default function CreateTaskModal({
       priority: "medium",
       dueDate: "",
       participants: [],
-      assigner: credential?.credentialKey || "",
+      assigner: assignerEmail,
       preview: "",
     });
     onClose();
@@ -115,14 +115,6 @@ export default function CreateTaskModal({
             />
           </div>
 
-          <input
-            type="email"
-            placeholder="Assigner Email"
-            disabled
-            className="w-full p-2 border rounded"
-            value={formData.assigner}
-            onChange={(e) => setFormData({ ...formData, assigner: e.target.value })}
-          />
           <input
             type="text"
             placeholder="Preview Text"
