@@ -67,3 +67,21 @@ export  async function getValidAccessToken({ credential }) {
     throw new Error("Failed to refresh Cloze access token");
   }
 }
+
+export async function getMe({ accessToken }: { accessToken: string }) {
+  const response = await fetch(
+    
+    `https://api.cloze.com/v1/user/profile`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+
+  const data = await response.json();
+
+  return data.profile;
+}

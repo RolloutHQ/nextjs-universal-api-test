@@ -412,6 +412,8 @@ export default function Home() {
                     isOpen={isTasksModalOpen}
                     onClose={() => setIsTasksModalOpen(false)}
                     onSubmit={createTask}
+                    credential={credential}
+                    people={people}
                   />
                 </>
               )}
@@ -433,6 +435,8 @@ export default function Home() {
                     isOpen={isTasksModalOpen}
                     onClose={() => setIsTasksModalOpen(false)}
                     onSubmit={createTask}
+                    people={people}
+                    credential={credential}
                   />
                 </>
               )}

@@ -1,18 +1,22 @@
 "use client";
 import { useState } from "react";
 import CreateModal from "../CreateModal";
-import { CreateTaskInput } from "@/types/resources";
+import { CreateTaskInput, Person } from "@/types/resources";
 
 interface CreateTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: CreateTaskInput) => Promise<void>;
+  people?: Person[];
+  credential?: any;
 }
 
 export default function CreateTaskModal({
   isOpen,
   onClose,
   onSubmit,
+  people = [],
+  credential,
 }: CreateTaskModalProps) {
   const [formData, setFormData] = useState<CreateTaskInput>({
     title: "",
@@ -21,21 +25,18 @@ export default function CreateTaskModal({
     priority: "medium",
     dueDate: "",
     participants: [],
-    assigner: "",
+    assigner: credential?.credentialKey || "",
     preview: "",
   });
-  const [currentEmail, setCurrentEmail] = useState("");
 
-  const handleAddParticipant = () => {
-    if (currentEmail && currentEmail.includes("@")) {
-      const trimmedEmail = currentEmail.trim();
-      if (!formData.participants?.includes(trimmedEmail)) {
-        setFormData({
-          ...formData,
-          participants: [...(formData.participants || []), trimmedEmail],
-        });
-        setCurrentEmail("");
-      }
+  const handleAddParticipant = (personId: string) => {
+    const person = people.find((p) => p.id === personId);
+    const email = person?.emails?.[0]?.value;
+    if (email && !formData.participants?.includes(email)) {
+      setFormData({
+        ...formData,
+        participants: [...(formData.participants || []), email],
+      });
     }
   };
 
@@ -56,10 +57,9 @@ export default function CreateTaskModal({
       priority: "medium",
       dueDate: "",
       participants: [],
-      assigner: "",
+      assigner: credential?.credentialKey || "",
       preview: "",
     });
-    setCurrentEmail("");
     onClose();
   };
 
@@ -118,6 +118,7 @@ export default function CreateTaskModal({
           <input
             type="email"
             placeholder="Assigner Email"
+            disabled
             className="w-full p-2 border rounded"
             value={formData.assigner}
             onChange={(e) => setFormData({ ...formData, assigner: e.target.value })}
@@ -135,28 +136,25 @@ export default function CreateTaskModal({
             <label className="block text-sm font-medium text-gray-700">
               Participants
             </label>
-            <div className="flex gap-2">
-              <input
-                type="email"
-                placeholder="Enter email address"
-                className="flex-1 p-2 border rounded"
-                value={currentEmail}
-                onChange={(e) => setCurrentEmail(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleAddParticipant();
-                  }
-                }}
-              />
-              <button
-                type="button"
-                onClick={handleAddParticipant}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-              >
-                Add
-              </button>
-            </div>
+            <select
+              className="w-full p-2 border rounded"
+              value=""
+              onChange={(e) => {
+                if (e.target.value) handleAddParticipant(e.target.value);
+              }}
+            >
+              <option value="">Add participant...</option>
+              {people
+                .filter((p) => {
+                  const email = p.emails?.[0]?.value;
+                  return email && !formData.participants?.includes(email);
+                })
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.firstName} {p.lastName}
+                  </option>
+                ))}
+            </select>
 
             {/* Display added participants */}
             {formData.participants && formData.participants.length > 0 && (
@@ -166,7 +164,7 @@ export default function CreateTaskModal({
                     key={index}
                     className="flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
                   >
-                    <span>{email}</span>
+                    <span>{people.find((p) => p.emails?.[0]?.value === email)?.firstName} {people.find((p) => p.emails?.[0]?.value === email)?.lastName}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveParticipant(email)}
