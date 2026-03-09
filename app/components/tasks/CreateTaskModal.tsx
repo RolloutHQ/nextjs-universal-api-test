@@ -1,7 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import CreateModal from "../CreateModal";
 import { CreateTaskInput, Person } from "@/types/resources";
+
+const PAGE_SIZE = 20;
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -9,14 +11,17 @@ interface CreateTaskModalProps {
   onSubmit: (data: CreateTaskInput) => Promise<void>;
   people?: Person[];
   assignerEmail?: string;
+  token?: string;
+  credentialId?: string;
 }
 
 export default function CreateTaskModal({
   isOpen,
   onClose,
   onSubmit,
-  people = [],
   assignerEmail = "",
+  token,
+  credentialId,
 }: CreateTaskModalProps) {
   const [formData, setFormData] = useState<CreateTaskInput>({
     title: "",
@@ -29,22 +34,83 @@ export default function CreateTaskModal({
     preview: "",
   });
 
-  const handleAddParticipant = (personId: string) => {
-    const person = people.find((p) => p.id === personId);
-    const email = person?.emails?.[0]?.value;
-    if (email && !formData.participants?.includes(email)) {
-      setFormData({
-        ...formData,
-        participants: [...(formData.participants || []), email],
-      });
+  const [search, setSearch] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [dropdownPeople, setDropdownPeople] = useState<Person[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const searchRef = useRef("");
+  const listRef = useRef<HTMLUListElement>(null);
+
+  const fetchPeople = useCallback(async (pageNum: number, query: string, append: boolean) => {
+    if (!token || !credentialId || loading) return;
+    setLoading(true);
+    const params = new URLSearchParams({ pagenumber: String(pageNum), pagesize: String(PAGE_SIZE) });
+    if (query) params.set("search", query);
+    const res = await fetch(`/api/people?${params}`, {
+      headers: { "X-Rollout-Token": token, "X-Credential-Id": credentialId },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const fetched: Person[] = data.people || [];
+      setDropdownPeople(prev => append ? [...prev, ...fetched] : fetched);
+      setHasMore(fetched.length === PAGE_SIZE);
+    }
+    setLoading(false);
+  }, [token, credentialId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reset and re-fetch when search changes (debounced)
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      searchRef.current = search;
+      setPage(1);
+      setDropdownPeople([]);
+      setHasMore(true);
+      fetchPeople(1, search, false);
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [search]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load first page when dropdown opens
+  useEffect(() => {
+    if (showDropdown && dropdownPeople.length === 0 && !loading) {
+      fetchPeople(1, search, false);
+    }
+  }, [showDropdown]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleScroll = () => {
+    const el = listRef.current;
+    if (!el || loading || !hasMore) return;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 40) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchPeople(nextPage, searchRef.current, true);
     }
   };
 
+  const filteredPeople = dropdownPeople.filter((p) => {
+    const email = p.emails?.[0]?.value;
+    return email && !formData.participants?.includes(email);
+  });
+
+  const handleAddParticipant = (person: Person) => {
+    const email = person.emails?.[0]?.value;
+    if (email && !formData.participants?.includes(email)) {
+      setFormData(prev => ({
+        ...prev,
+        participants: [...(prev.participants || []), email],
+      }));
+    }
+    setSearch("");
+    setShowDropdown(false);
+  };
+
   const handleRemoveParticipant = (email: string) => {
-    setFormData({
-      ...formData,
-      participants: formData.participants?.filter((p) => p !== email) || [],
-    });
+    setFormData(prev => ({
+      ...prev,
+      participants: prev.participants?.filter((p) => p !== email) || [],
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -108,7 +174,6 @@ export default function CreateTaskModal({
             <input
               type="date"
               id="dueDate"
-              placeholder="Due Date"
               className="w-full p-2 border rounded"
               value={formData.dueDate}
               onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
@@ -126,27 +191,41 @@ export default function CreateTaskModal({
           {/* Participants Section */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">
-              Participants
+              People
             </label>
-            <select
-              className="w-full p-2 border rounded"
-              value=""
-              onChange={(e) => {
-                if (e.target.value) handleAddParticipant(e.target.value);
-              }}
-            >
-              <option value="">Add participant...</option>
-              {people
-                .filter((p) => {
-                  const email = p.emails?.[0]?.value;
-                  return email && !formData.participants?.includes(email);
-                })
-                .map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.firstName} {p.lastName}
-                  </option>
-                ))}
-            </select>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search participants..."
+                className="w-full p-2 border rounded"
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setShowDropdown(true); }}
+                onFocus={() => setShowDropdown(true)}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+              />
+              {showDropdown && (
+                <ul ref={listRef} onScroll={handleScroll} className="absolute z-10 w-full bg-white border rounded shadow-lg max-h-48 overflow-y-auto mt-1">
+                  {filteredPeople.map((p) => (
+                    <li
+                      key={p.id}
+                      onMouseDown={() => handleAddParticipant(p)}
+                      className="px-3 py-2 cursor-pointer hover:bg-blue-50 text-sm"
+                    >
+                      <span className="font-medium">{p.firstName} {p.lastName}</span>
+                      {p.emails?.[0]?.value && (
+                        <span className="ml-2 text-gray-500">{p.emails[0].value}</span>
+                      )}
+                    </li>
+                  ))}
+                  {loading && (
+                    <li className="px-3 py-2 text-sm text-gray-400 text-center">{`Loading${hasMore ? ' more' : ''}...`}</li>
+                  )}
+                  {!loading && filteredPeople.length === 0 && (
+                    <li className="px-3 py-2 text-sm text-gray-400 text-center">No results</li>
+                  )}
+                </ul>
+              )}
+            </div>
 
             {/* Display added participants */}
             {formData.participants && formData.participants.length > 0 && (
@@ -156,7 +235,7 @@ export default function CreateTaskModal({
                     key={index}
                     className="flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
                   >
-                    <span>{people.find((p) => p.emails?.[0]?.value === email)?.firstName} {people.find((p) => p.emails?.[0]?.value === email)?.lastName}</span>
+                    <span>{email}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveParticipant(email)}

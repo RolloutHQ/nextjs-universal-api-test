@@ -409,6 +409,8 @@ export default function Home() {
                     onSubmit={createTask}
                     assignerEmail={assignerEmail}
                     people={people}
+                    token={token ?? undefined}
+                    credentialId={credentialId ?? undefined}
                   />
                 </>
               )}
@@ -430,8 +432,9 @@ export default function Home() {
                     isOpen={isTasksModalOpen}
                     onClose={() => setIsTasksModalOpen(false)}
                     onSubmit={createTask}
-                    people={people}
                     assignerEmail={assignerEmail}
+                    token={token ?? undefined}
+                    credentialId={credentialId ?? undefined}
                   />
                 </>
               )}

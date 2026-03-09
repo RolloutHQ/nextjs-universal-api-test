@@ -26,21 +26,30 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const pageNumber = parseInt(searchParams.get("pagenumber") || "1", 10);
     const pageSize = parseInt(searchParams.get("pagesize") || "25", 10);
+    const search = searchParams.get("search") || "";
 
     const credential = await getClozeCredential(rolloutToken, credentialId);
 
-    // Fetch total count first
-    const countRes = await fetchCloze(
-      "https://api.cloze.com/v1/people/find?countonly=true",
-      { method: "GET" },
-      { credential, rolloutToken }
-    );
-    const countData = await countRes.json();
-    const totalCount: number = countData.availablecount ?? 0;
+    const params = new URLSearchParams({
+      pagenumber: String(pageNumber),
+      pagesize: String(pageSize),
+      ...(search ? { freeformquery: `name is ${search}` } : {}),
+    });
 
-    // Fetch the requested page
+    // Fetch total count first (skip for search queries — just return matched results)
+    let totalCount = 0;
+    if (!search) {
+      const countRes = await fetchCloze(
+        "https://api.cloze.com/v1/people/find?countonly=true",
+        { method: "GET" },
+        { credential, rolloutToken }
+      );
+      const countData = await countRes.json();
+      totalCount = countData.availablecount ?? 0;
+    }
+
     const response = await fetchCloze(
-      `https://api.cloze.com/v1/people/find?pagenumber=${pageNumber}&pagesize=${pageSize}`,
+      `https://api.cloze.com/v1/people/find?${params.toString()}`,
       { method: "GET" },
       { credential, rolloutToken }
     );
