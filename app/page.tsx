@@ -11,6 +11,9 @@ import TasksTable from "./components/tasks/TasksTable";
 import CreateTaskModal from "./components/tasks/CreateTaskModal";
 import EmailsTable from "./components/emails/EmailsTable";
 
+// Lib
+import { addLocalPerson, mergePeopleWithLocal } from "./lib/personStorage";
+
 // Types
 import type {
   Person,
@@ -186,7 +189,7 @@ export default function Home() {
       }
 
       const data = await response.json();
-      setPeople(data.people || []);
+      setPeople(mergePeopleWithLocal(data.people || []));
       setPeoplePagination(data._metadata || null);
     } catch (err: any) {
       setPeopleError(err.message);
@@ -233,6 +236,8 @@ export default function Home() {
       });
 
       if (response.ok) {
+        const created = await response.json();
+        if (created?.id) addLocalPerson(created);
         fetchPeople();
       }
     } catch (error) {
