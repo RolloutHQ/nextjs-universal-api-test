@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { NextRequest } from "next/server";
+import { getValidAccessToken } from "../credentials/cloze";
 
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+async function getClozeAccessToken(rolloutToken: string, credentialId: string) {
+  const credentialsRes = await fetch("https://universal.rollout.com/api/credentials?includeData=true", {
+    headers: { Authorization: `Bearer ${rolloutToken}` },
+  });
+  const credentials = await credentialsRes.json();
+  const credential = credentials.find((c: any) => c.id === credentialId);
+  return getValidAccessToken({ credential });
+}
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
     const headersList = headers();
     const rolloutToken = headersList.get("x-rollout-token");
@@ -17,45 +24,54 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "No credential ID provided" }, { status: 400 });
     }
 
-    await wait(2000);
+    const { searchParams } = new URL(request.url);
+    const pageNumber = parseInt(searchParams.get("pagenumber") || "1", 10);
+    const pageSize = parseInt(searchParams.get("pagesize") || "25", 10);
 
-    // Build URL with optional pagination cursor
-    const searchParams = request.nextUrl.searchParams;
-    const nextCursor = searchParams.get("next");
+    const accessToken = await getClozeAccessToken(rolloutToken, credentialId);
 
-    const params = new URLSearchParams({
-      ...(nextCursor ? { next: nextCursor } : {}),
-      limit: "50",
-    });
+    // Fetch total count first
+    const countRes = await fetch(
+      `https://api.cloze.com/v1/people/find?countonly=true`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    const countData = await countRes.json();
+    const totalCount: number = countData.availablecount ?? 0;
 
-    let url = `https://crm.universal.rollout.com/api/people?${params.toString()}`;
+    // Fetch the requested page
+    const response = await fetch(
+      `https://api.cloze.com/v1/people/find?pagenumber=${pageNumber}&pagesize=${pageSize}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
 
-    const options = {
-      headers: {
-        Authorization: `Bearer ${rolloutToken}`,
-        "x-rollout-credential-id": credentialId,
-        "Content-Type": "application/json",
-      },
-    };
-
-    const response = await fetch(url, options);
     if (!response.ok) {
       const errorData = await response.json();
       return NextResponse.json(
-        { error: errorData.message || 'Failed to fetch people data' },
+        { error: errorData.message || "Failed to fetch people" },
         { status: response.status }
       );
     }
+
     const data = await response.json();
-    return NextResponse.json(data);
+
+    const people = (data.people || []).map((p: any) => {
+      const nameParts = (p.name || "").split(" ");
+      return {
+        id: p.id,
+        firstName: nameParts[0] || "",
+        lastName: nameParts.slice(1).join(" ") || "",
+        emails: p.emails || [],
+        phones: p.phones || [],
+      };
+    });
+
+    return NextResponse.json({ people, page: pageNumber, pageSize, totalCount });
   } catch (error) {
     console.error("Error fetching people:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch people data" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to fetch people" }, { status: 500 });
   }
 }
+
 export async function POST(request: Request) {
   try {
     const headersList = headers();
@@ -69,25 +85,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No credential ID provided" }, { status: 400 });
     }
 
+    const accessToken = await getClozeAccessToken(rolloutToken, credentialId);
     const body = await request.json();
 
-    const response = await fetch(
-      "https://crm.universal.rollout.com/api/people",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${rolloutToken}`,
-          "x-rollout-credential-id": credentialId,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
+    // Map our CreatePersonInput to Cloze format
+    const clozeBody = {
+      name: `${body.firstName} ${body.lastName}`.trim(),
+      emails: body.emails || [],
+      addresses: body.addresses || [],
+    };
+
+    const response = await fetch("https://api.cloze.com/v1/people/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
       },
-    );
+      body: JSON.stringify(clozeBody),
+    });
+
     if (!response.ok) {
       const error = await response.text();
-      console.error("Error creating person:", error);
       return NextResponse.json(
-        { error: error || 'Failed to create person' },
+        { error: error || "Failed to create person" },
         { status: response.status }
       );
     }
@@ -96,9 +116,6 @@ export async function POST(request: Request) {
     return NextResponse.json(data);
   } catch (error) {
     console.error("Error creating person:", error);
-    return NextResponse.json(
-      { error: "Failed to create person" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to create person" }, { status: 500 });
   }
 }

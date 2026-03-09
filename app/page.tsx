@@ -11,9 +11,6 @@ import TasksTable from "./components/tasks/TasksTable";
 import CreateTaskModal from "./components/tasks/CreateTaskModal";
 import EmailsTable from "./components/emails/EmailsTable";
 
-// Lib
-import { addLocalPerson, mergePeopleWithLocal } from "./lib/personStorage";
-
 // Types
 import type {
   Person,
@@ -21,7 +18,6 @@ import type {
   Task,
   CreateTaskInput,
   ClozeMessage,
-  PaginationMetadata,
 } from "@/types/resources";
 import { getAllTasks, addTask } from "./lib/taskStorage";
 
@@ -39,8 +35,9 @@ export default function Home() {
   const [peopleLoading, setPeopleLoading] = useState(false);
   const [peopleError, setPeopleError] = useState<string | null>(null);
   const [isPeopleModalOpen, setIsPeopleModalOpen] = useState(false);
-  const [peoplePagination, setPeoplePagination] = useState<PaginationMetadata | null>(null);
-  const [peopleCursorHistory, setPeopleCursorHistory] = useState<string[]>([]);
+  const [peoplePage, setPeoplePage] = useState(1);
+  const [peopleTotalCount, setPeopleTotalCount] = useState(0);
+  const PEOPLE_PAGE_SIZE = 25;
 
   // Tasks state
   const [tasks, setTasks] = useState<Task[]>(getAllTasks());
@@ -101,6 +98,7 @@ export default function Home() {
         },
       });
       const data = await response.json();
+      console.log({data})
       setCredentials(data || []);
 
       if (data && data.length > 0) {
@@ -164,12 +162,12 @@ export default function Home() {
   }
 
   // People handlers
-  async function fetchPeople(cursor?: string, retryCount = 0, maxRetries = 3) {
+  async function fetchPeople(page = 1) {
     setPeopleLoading(true);
     setPeopleError(null);
 
     try {
-      const url = cursor ? `/api/people?next=${encodeURIComponent(cursor)}` : "/api/people";
+      const url = `/api/people?pagenumber=${page}&pagesize=${PEOPLE_PAGE_SIZE}`;
       const response = await fetch(url, {
         headers: {
           "Content-Type": "application/json",
@@ -178,49 +176,28 @@ export default function Home() {
         },
       });
 
-      if (response.status === 409 && retryCount < maxRetries) {
-        setPeopleError("Data not ready. Retrying...");
-        await new Promise(resolve => setTimeout(resolve, 30000));
-        return fetchPeople(cursor, retryCount + 1, maxRetries);
-      }
-
       if (!response.ok) {
         throw new Error("Failed to fetch people data");
       }
 
       const data = await response.json();
-      setPeople(mergePeopleWithLocal(data.people || []));
-      setPeoplePagination(data._metadata || null);
+      setPeople(data.people || []);
+      setPeoplePage(data.page ?? page);
+      setPeopleTotalCount(data.totalCount ?? 0);
     } catch (err: any) {
       setPeopleError(err.message);
     } finally {
-      if (retryCount === 0) {
-        setPeopleLoading(false);
-      }
+      setPeopleLoading(false);
     }
   }
 
   function goToNextPeoplePage() {
-    if (peoplePagination?.next) {
-      // Save next cursor to history for "back" navigation
-      setPeopleCursorHistory([...peopleCursorHistory, peoplePagination.next]);
-      fetchPeople(peoplePagination.next);
-    }
+    const totalPages = Math.ceil(peopleTotalCount / PEOPLE_PAGE_SIZE);
+    if (peoplePage < totalPages) fetchPeople(peoplePage + 1);
   }
 
   function goToPreviousPeoplePage() {
-    if (peopleCursorHistory.length > 1) {
-      // Remove current cursor, go back to previous
-      const newHistory = [...peopleCursorHistory];
-      newHistory.pop(); // Remove current
-      const previousCursor = newHistory[newHistory.length - 1];
-      setPeopleCursorHistory(newHistory);
-      fetchPeople(previousCursor || undefined);
-    } else if (peopleCursorHistory.length === 1) {
-      // Go back to first page
-      setPeopleCursorHistory([]);
-      fetchPeople();
-    }
+    if (peoplePage > 1) fetchPeople(peoplePage - 1);
   }
 
   async function createPerson(data: CreatePersonInput) {
@@ -236,8 +213,6 @@ export default function Home() {
       });
 
       if (response.ok) {
-        const created = await response.json();
-        if (created?.id) addLocalPerson(created);
         fetchPeople();
       }
     } catch (error) {
@@ -373,6 +348,7 @@ export default function Home() {
       </main>
     );
   }
+  console.log({credentialId})
 
   return (
     <main className="flex min-h-screen flex-col items-center p-4">
@@ -408,10 +384,10 @@ export default function Home() {
                     loading={peopleLoading}
                     error={peopleError}
                     onCreateClick={() => setIsPeopleModalOpen(true)}
-                    pagination={peoplePagination}
+                    pagination={{ collection: "people", offset: (peoplePage - 1) * PEOPLE_PAGE_SIZE, limit: PEOPLE_PAGE_SIZE, total: peopleTotalCount, next: peoplePage < Math.ceil(peopleTotalCount / PEOPLE_PAGE_SIZE) ? "true" : undefined }}
                     onNextPage={goToNextPeoplePage}
                     onPreviousPage={goToPreviousPeoplePage}
-                    canGoBack={peopleCursorHistory.length > 0}
+                    canGoBack={peoplePage > 1}
                   />
                   <CreatePersonModal
                     isOpen={isPeopleModalOpen}
