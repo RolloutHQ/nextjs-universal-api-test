@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { getValidAccessToken, getMe } from "../credentials/cloze";
+import { getMe } from "../credentials/cloze";
 
 export async function GET() {
   try {
@@ -27,8 +27,7 @@ export async function GET() {
       return NextResponse.json({ error: "Credential not found" }, { status: 404 });
     }
 
-    const accessToken = await getValidAccessToken({ credential });
-    const profile = await getMe({ accessToken });
+    const profile = await getMe({ credential, rolloutToken });
 
     return NextResponse.json({ profile });
   } catch (error) {

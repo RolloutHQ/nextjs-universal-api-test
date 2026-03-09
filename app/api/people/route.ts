@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { getValidAccessToken } from "../credentials/cloze";
+import { fetchCloze } from "../credentials/cloze";
 
-async function getClozeAccessToken(rolloutToken: string, credentialId: string) {
+async function getClozeCredential(rolloutToken: string, credentialId: string) {
   const credentialsRes = await fetch("https://universal.rollout.com/api/credentials?includeData=true", {
     headers: { Authorization: `Bearer ${rolloutToken}` },
   });
   const credentials = await credentialsRes.json();
-  const credential = credentials.find((c: any) => c.id === credentialId);
-  return getValidAccessToken({ credential });
+  return credentials.find((c: any) => c.id === credentialId);
 }
 
 export async function GET(request: Request) {
@@ -28,20 +27,22 @@ export async function GET(request: Request) {
     const pageNumber = parseInt(searchParams.get("pagenumber") || "1", 10);
     const pageSize = parseInt(searchParams.get("pagesize") || "25", 10);
 
-    const accessToken = await getClozeAccessToken(rolloutToken, credentialId);
+    const credential = await getClozeCredential(rolloutToken, credentialId);
 
     // Fetch total count first
-    const countRes = await fetch(
-      `https://api.cloze.com/v1/people/find?countonly=true`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
+    const countRes = await fetchCloze(
+      "https://api.cloze.com/v1/people/find?countonly=true",
+      { method: "GET" },
+      { credential, rolloutToken }
     );
     const countData = await countRes.json();
     const totalCount: number = countData.availablecount ?? 0;
 
     // Fetch the requested page
-    const response = await fetch(
+    const response = await fetchCloze(
       `https://api.cloze.com/v1/people/find?pagenumber=${pageNumber}&pagesize=${pageSize}`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
+      { method: "GET" },
+      { credential, rolloutToken }
     );
 
     if (!response.ok) {
@@ -85,24 +86,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No credential ID provided" }, { status: 400 });
     }
 
-    const accessToken = await getClozeAccessToken(rolloutToken, credentialId);
+    const credential = await getClozeCredential(rolloutToken, credentialId);
     const body = await request.json();
 
-    // Map our CreatePersonInput to Cloze format
     const clozeBody = {
       name: `${body.firstName} ${body.lastName}`.trim(),
       emails: body.emails || [],
       addresses: body.addresses || [],
     };
 
-    const response = await fetch("https://api.cloze.com/v1/people/create", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
+    const response = await fetchCloze(
+      "https://api.cloze.com/v1/people/create",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(clozeBody),
       },
-      body: JSON.stringify(clozeBody),
-    });
+      { credential, rolloutToken }
+    );
 
     if (!response.ok) {
       const error = await response.text();

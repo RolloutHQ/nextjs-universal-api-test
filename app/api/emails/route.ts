@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { getValidAccessToken } from "../credentials/cloze";
+import { fetchCloze } from "../credentials/cloze";
 
 export async function GET() {
   try {
@@ -8,48 +8,35 @@ export async function GET() {
     const rolloutToken = headersList.get("x-rollout-token");
     const credentialId = headersList.get("X-Credential-Id");
 
-    const credentialsRes = await fetch("https://universal.rollout.com/api/credentials?includeData=true", {
-      headers: {
-        Authorization: `Bearer ${rolloutToken}`,
-      },
-    });
-    const credentials = await credentialsRes.json();
-
-    const credential = credentials.find((cred: any) => cred.id === credentialId);
-
-    const clozeAccessToken = await getValidAccessToken({ credential });
-
     if (!rolloutToken) {
       return NextResponse.json({ error: "No rollout token provided" }, { status: 401 });
     }
-
-    if (!clozeAccessToken) {
-      return NextResponse.json({ error: "No Cloze API access token provided" }, { status: 400 });
+    if (!credentialId) {
+      return NextResponse.json({ error: "No credential ID provided" }, { status: 400 });
     }
 
-    // Fetch messages from Cloze API
-
-    const url = `https://api.cloze.com/v1/messages/opens`;
-    const response = await fetch(url, {
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${clozeAccessToken}`,
-      },
+    const credentialsRes = await fetch("https://universal.rollout.com/api/credentials?includeData=true", {
+      headers: { Authorization: `Bearer ${rolloutToken}` },
     });
+    const credentials = await credentialsRes.json();
+    const credential = credentials.find((cred: any) => cred.id === credentialId);
+
+    const response = await fetchCloze(
+      "https://api.cloze.com/v1/messages/opens",
+      { method: "GET", headers: { "Content-Type": "application/json" } },
+      { credential, rolloutToken }
+    );
 
     if (!response.ok) {
       const errorData = await response.json();
-
       return NextResponse.json(
-        { error: errorData.message || 'Failed to fetch messages' },
+        { error: errorData.message || "Failed to fetch messages" },
         { status: response.status }
       );
     }
 
     const data = await response.json();
 
-    // The API returns an array with a single object containing messages
-    // Extract the messages array from the response
     if (Array.isArray(data) && data.length > 0) {
       return NextResponse.json(data[0]);
     }
@@ -57,9 +44,6 @@ export async function GET() {
     return NextResponse.json(data);
   } catch (error) {
     console.error("Error fetching messages:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch messages" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to fetch messages" }, { status: 500 });
   }
 }

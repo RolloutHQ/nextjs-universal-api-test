@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { getValidAccessToken } from "../credentials/cloze";
+import { fetchCloze } from "../credentials/cloze";
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -32,7 +32,7 @@ export async function GET() {
     if (!response.ok) {
       const errorData = await response.json();
       return NextResponse.json(
-        { error: errorData.message || 'Failed to fetch tasks data' },
+        { error: errorData.message || "Failed to fetch tasks data" },
         { status: response.status }
       );
     }
@@ -41,10 +41,7 @@ export async function GET() {
     return NextResponse.json(data);
   } catch (error) {
     console.error("Error fetching tasks:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch tasks data" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to fetch tasks data" }, { status: 500 });
   }
 }
 
@@ -54,15 +51,6 @@ export async function POST(request: Request) {
     const rolloutToken = headersList.get("x-rollout-token");
     const credentialId = headersList.get("x-credential-id");
 
-    const credentialsRes = await fetch("https://universal.rollout.com/api/credentials?includeData=true", {
-      headers: {
-        Authorization: `Bearer ${rolloutToken}`,
-      },
-    });
-    const credentials = await credentialsRes.json();
-    const credential = credentials.find((cred: any) => cred.id === credentialId);
-    const clozeAccessToken = await getValidAccessToken({ credential });
-
     if (!rolloutToken) {
       return NextResponse.json({ error: "No token provided" }, { status: 401 });
     }
@@ -70,30 +58,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No credential ID provided" }, { status: 400 });
     }
 
+    const credentialsRes = await fetch("https://universal.rollout.com/api/credentials?includeData=true", {
+      headers: { Authorization: `Bearer ${rolloutToken}` },
+    });
+    const credentials = await credentialsRes.json();
+    const credential = credentials.find((cred: any) => cred.id === credentialId);
+
     const body = await request.json();
 
-    const url = `https://api.cloze.com/v1/timeline/todo/create`;
-    const options = {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${clozeAccessToken}`,
+    const response = await fetchCloze(
+      "https://api.cloze.com/v1/timeline/todo/create",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject: body.title,
+          participants: body.participants,
+          when: body.dueDate,
+          assigner: body.assigner,
+          preview: body.preview,
+        }),
       },
-      body: JSON.stringify({
-        subject: body.title,
-        participants: body.participants,
-        when: body.dueDate,
-        assigner: body.assigner,
-        preview: body.preview,
-      }),
-    };
-
-    const response = await fetch(url, options);
+      { credential, rolloutToken }
+    );
 
     if (!response.ok) {
       const errorData = await response.json();
       return NextResponse.json(
-        { error: errorData.message || 'Failed to create task' },
+        { error: errorData.message || "Failed to create task" },
         { status: response.status }
       );
     }
@@ -102,9 +94,6 @@ export async function POST(request: Request) {
     return NextResponse.json(data);
   } catch (error) {
     console.error("Error creating task:", error);
-    return NextResponse.json(
-      { error: "Failed to create task" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to create task" }, { status: 500 });
   }
 }
