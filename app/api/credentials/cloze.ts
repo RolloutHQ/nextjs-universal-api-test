@@ -8,7 +8,7 @@ const SCOPES = [
   "read_relation",
 ];
 
-async function doRefresh({ credential, rolloutToken }: { credential: any; rolloutToken: string }): Promise<string> {
+async function doRefresh({ credential }: { credential: any; }): Promise<string> {
   const response = await fetch(`${BASE_URL}/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -29,19 +29,9 @@ async function doRefresh({ credential, rolloutToken }: { credential: any; rollou
   const data = await response.json();
 
   const newTokenData = {
-    refreshToken: data.refresh_token ?? credential.currentData.refreshToken,
+    refreshToken: credential.currentData.refreshToken,
     accessToken: data.access_token,
   };
-
-  // Persist updated tokens back to Rollout
-  await fetch(`https://universal.rollout.com/api/credentials/${credential.id}`, {
-    method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${rolloutToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ currentData: newTokenData }),
-  }).catch((err) => console.error("Failed to persist refreshed tokens:", err));
 
   return newTokenData.accessToken;
 }
@@ -63,7 +53,7 @@ export async function fetchCloze(
   const response = await makeRequest(credential.currentData.accessToken);
 
   if (response.status === 401) {
-    const newToken = await doRefresh({ credential, rolloutToken });
+    const newToken = await doRefresh({ credential });
     return makeRequest(newToken);
   }
 
