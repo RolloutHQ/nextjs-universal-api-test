@@ -98,7 +98,6 @@ export default function Home() {
         },
       });
       const data = await response.json();
-      console.log({data})
       setCredentials(data || []);
 
       if (data && data.length > 0) {
@@ -348,7 +347,6 @@ export default function Home() {
       </main>
     );
   }
-  console.log({credentialId})
 
   return (
     <main className="flex min-h-screen flex-col items-center p-4">
