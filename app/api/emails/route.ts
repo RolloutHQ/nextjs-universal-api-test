@@ -24,7 +24,7 @@ export async function GET() {
     const response = await fetchCloze(
       "https://api.cloze.com/v1/messages/opens",
       { method: "GET", headers: { "Content-Type": "application/json" } },
-      { credential, rolloutToken }
+      { credential }
     );
 
     if (!response.ok) {

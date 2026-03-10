@@ -79,7 +79,7 @@ export async function POST(request: Request) {
           preview: body.preview,
         }),
       },
-      { credential, rolloutToken }
+      { credential }
     );
 
     if (!response.ok) {

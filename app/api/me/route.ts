@@ -27,7 +27,7 @@ export async function GET() {
       return NextResponse.json({ error: "Credential not found" }, { status: 404 });
     }
 
-    const profile = await getMe({ credential, rolloutToken });
+    const profile = await getMe({ credential });
 
     return NextResponse.json({ profile });
   } catch (error) {
