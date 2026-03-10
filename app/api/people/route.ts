@@ -42,7 +42,7 @@ export async function GET(request: Request) {
       const countRes = await fetchCloze(
         "https://api.cloze.com/v1/people/find?countonly=true",
         { method: "GET" },
-        { credential, rolloutToken }
+        { credential }
       );
       const countData = await countRes.json();
       totalCount = countData.availablecount ?? 0;
@@ -51,7 +51,7 @@ export async function GET(request: Request) {
     const response = await fetchCloze(
       `https://api.cloze.com/v1/people/find?${params.toString()}`,
       { method: "GET" },
-      { credential, rolloutToken }
+      { credential }
     );
 
     if (!response.ok) {
@@ -111,7 +111,7 @@ export async function POST(request: Request) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(clozeBody),
       },
-      { credential, rolloutToken }
+      { credential }
     );
 
     if (!response.ok) {
