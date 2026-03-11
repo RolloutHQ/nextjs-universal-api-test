@@ -42,6 +42,7 @@ export default function CreateTaskModal({
   const [loading, setLoading] = useState(false);
   const searchRef = useRef("");
   const listRef = useRef<HTMLUListElement>(null);
+  const [saving, setSaving] = useState(false);
 
   const fetchPeople = useCallback(async (pageNum: number, query: string, append: boolean) => {
     if (!token || !credentialId || loading) return;
@@ -115,7 +116,9 @@ export default function CreateTaskModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaving(true);
     await onSubmit(formData);
+    setSaving(false);
     setFormData({
       title: "",
       description: "",
@@ -158,15 +161,20 @@ export default function CreateTaskModal({
             <option value="completed">Completed</option>
             <option value="cancelled">Cancelled</option>
           </select>
-          <select
-            className="w-full p-2 border rounded"
-            value={formData.priority}
-            onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-          >
-            <option value="low">Low Priority</option>
-            <option value="medium">Medium Priority</option>
-            <option value="high">High Priority</option>
-          </select>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Priority
+            </label>
+            <select
+              className="w-full p-2 border rounded"
+              value={formData.priority}
+              onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">
               Due Date
@@ -179,19 +187,23 @@ export default function CreateTaskModal({
               onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
             />
           </div>
-
-          <input
-            type="text"
-            placeholder="Preview Text"
-            className="w-full p-2 border rounded"
-            value={formData.preview}
-            onChange={(e) => setFormData({ ...formData, preview: e.target.value })}
-          />
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Preview
+            </label>
+            <input
+              type="text"
+              placeholder="Preview Text"
+              className="w-full p-2 border rounded"
+              value={formData.preview}
+              onChange={(e) => setFormData({ ...formData, preview: e.target.value })}
+            />
+          </div>
 
           {/* Participants Section */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">
-              People
+              People *
             </label>
             <div className="relative">
               <input
@@ -259,9 +271,10 @@ export default function CreateTaskModal({
           </button>
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            disabled={!formData.title.trim() || !formData.participants?.length || saving}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Create Task
+            {saving ? 'Creating...' : 'Create Task'}
           </button>
         </div>
       </form>
