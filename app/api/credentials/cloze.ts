@@ -13,7 +13,7 @@ export async function fetchCloze(
       headers: { ...options.headers, Authorization: `Bearer ${token}` },
     });
 
-  const response = await makeRequest(credential.currentData.accessToken);
+  const response = await makeRequest(credential.data.accessToken);
 
   return response;
 }
