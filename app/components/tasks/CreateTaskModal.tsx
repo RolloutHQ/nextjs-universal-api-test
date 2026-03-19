@@ -25,9 +25,6 @@ export default function CreateTaskModal({
 }: CreateTaskModalProps) {
   const [formData, setFormData] = useState<CreateTaskInput>({
     title: "",
-    description: "",
-    status: "todo",
-    priority: "medium",
     dueDate: "",
     participants: [],
     assigner: assignerEmail,
@@ -121,9 +118,6 @@ export default function CreateTaskModal({
     setSaving(false);
     setFormData({
       title: "",
-      description: "",
-      status: "todo",
-      priority: "medium",
       dueDate: "",
       participants: [],
       assigner: assignerEmail,
@@ -144,37 +138,7 @@ export default function CreateTaskModal({
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             required
           />
-          <textarea
-            placeholder="Description"
-            className="w-full p-2 border rounded"
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            rows={3}
-          />
-          <select
-            className="w-full p-2 border rounded"
-            value={formData.status}
-            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-          >
-            <option value="todo">To Do</option>
-            <option value="in_progress">In Progress</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Priority
-            </label>
-            <select
-              className="w-full p-2 border rounded"
-              value={formData.priority}
-              onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-            >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
-          </div>
+          
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">
               Due Date

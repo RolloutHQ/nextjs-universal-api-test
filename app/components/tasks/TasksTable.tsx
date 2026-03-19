@@ -20,7 +20,6 @@ export default function TasksTable({
       data={tasks}
       columns={[
         { key: "title", label: "Title" },
-        { key: "description", label: "Description" },
         {
           key: "status",
           label: "Status",
